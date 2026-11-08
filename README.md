@@ -1,188 +1,274 @@
 # CampusGigs
 
-A campus gig marketplace where students post tasks, bid on each other's work, and get paid safely through **escrow** using **GigCoins**.
+CampusGigs is a campus gig marketplace where students post tasks, bid on work,
+and get paid safely through escrow using GigCoins.
 
-Built for the SEA Lab micro project, following the blueprint: basic web functionality + one unique feature (escrow).
+This project was built for the SEA Lab micro project. Its differentiating
+feature is an escrow-backed gig lifecycle: accepting a bid locks the exact bid
+amount, and the freelancer is paid only after the owner approves delivery.
 
-**Stack:** React 18 + Vite · Node.js + Express · PostgreSQL · JWT · bcryptjs
+## Features
 
-## What's inside
+- Student registration and login with JWT authentication and bcrypt password hashing
+- Configurable email-domain allowlist (defaults to `ves.ac.in`)
+- Gig discovery with search, category filters, and sorting
+- Gig creation, editing, cancellation, bidding, bid updates, and withdrawals
+- Escrow state machine with delivery, revision requests, approval, refunds, and
+  double-release protection
+- Profiles with public trust IDs, skills, XP, levels, and gig statistics
+- GigCoins wallet with mocked top-ups, UPI withdrawals, escrow balances,
+  transaction history, and analytics
+- History views for posted and completed work
+- Responsive React interface with a dashboard, side menu, charts, and status
+  stepper
 
-| Area | What it does |
-|---|---|
-| Login / Signup | Split-screen landing page. Remember me, forgot/reset password, `@ves.ac.in` email check, bcrypt-hashed passwords, JWT |
-| Menu | 3-bar button opens and closes a side drawer: Dashboard, Profile, GigCoins, History, Log out |
-| Dashboard | Explore gigs (search, category, sort), post a gig, place/update/withdraw bids, accept a bid, deliver, approve, ask for changes, leave a gig |
-| Escrow (unique feature) | Accepting a bid locks that bid amount from the owner's wallet. The freelancer is paid only when the owner approves. If the freelancer leaves, the owner is refunded in full |
-| Profile (trust ID) | Photo, name, headline, department, skills, bio, UPI. Shows level + XP (`Lv 1 · 100/1000`), gigs posted, gigs completed. Other students see it at `/u/:id` |
-| GigCoins | Balance, coins in escrow, earnings today/week/month, daily/weekly/monthly chart, activity log, add coins and withdraw to UPI (both mocked) |
-| History | Every gig you worked on or posted, filter by role and status, with payouts |
+## Technology
 
-### The escrow story from the brief
+| Layer | Technology |
+| --- | --- |
+| Client | React 18, React Router, Vite, Axios |
+| API | Node.js, Express, Helmet, CORS |
+| Database | PostgreSQL 14+ |
+| Authentication | JWT and bcryptjs |
+| Local database | Docker Compose with PostgreSQL 16 |
 
-1. Aarav posts a gig with a budget of **500**.
-2. Two students bid **450** and **400**.
-3. Aarav accepts **400**. Exactly 400 GigCoins move from his wallet into escrow (his balance drops by 400, not 500).
-4. The freelancer delivers. Aarav approves. The 400 are released to the freelancer's wallet.
-5. The freelancer withdraws to UPI whenever they like.
+## Requirements
 
-### XP and levels
+- Node.js 18 or newer
+- npm
+- PostgreSQL 14 or newer, or Docker Desktop
 
-Every level needs 1000 XP. Signup +100 · post a gig +50 · complete a gig as freelancer +250 · approve a delivery as owner +100.
+## Quick start
 
-## Setup (about 10 minutes)
-
-### 1. Install the basics
-
-- **Node.js 18+** (https://nodejs.org)
-- **PostgreSQL 14+** — pick one:
-  - Install it locally (https://www.postgresql.org/download/), **or**
-  - Use Docker: `docker compose up -d` in this folder (creates user `postgres`, password `postgres`, database `campusgigs`), **or**
-  - Use a free cloud database such as Neon (https://neon.tech) and copy its connection string.
-
-### 2. Configure the server
-
-```bash
-cd server
-cp .env.example .env        # Windows: copy .env.example .env
-```
-
-Open `server/.env` and set `DATABASE_URL` to match your Postgres, for example:
-
-```
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/campusgigs
-JWT_SECRET=any-long-random-string
-```
-
-Other settings (all optional):
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `ALLOWED_DOMAINS` | `ves.ac.in` | Comma-separated email domains allowed to sign up. Add `gmail.com` while testing if you like |
-| `SERVICE_FEE_PERCENT` | `0` | Cut kept by the platform on release. The blueprint suggests `5` |
-| `SIGNUP_BONUS_COINS` | `500` | Free demo GigCoins for new accounts |
-| `MIN_WITHDRAW_COINS` | `50` | Minimum UPI withdrawal |
-| `DB_SSL` | `false` | Set `true` for Neon / Render / Supabase |
-
-### 3. Install everything and create the database
+### 1. Install dependencies
 
 From the project root:
 
 ```bash
 npm run install:all
+```
+
+### 2. Start PostgreSQL
+
+The easiest local option is Docker:
+
+```bash
+docker compose up -d
+```
+
+This creates a local database named `campusgigs` with the user `postgres` and
+password `postgres`.
+
+### 3. Configure the API
+
+Copy the example environment file:
+
+```bash
+# macOS/Linux
+cp server/.env.example server/.env
+
+# Windows PowerShell
+Copy-Item server/.env.example server/.env
+```
+
+The example values work with the included Docker Compose database. Change
+`DATABASE_URL`, `JWT_SECRET`, and `CLIENT_ORIGIN` when using another database or
+host.
+
+The client environment file is optional for local development. Copy it if the
+API is hosted separately:
+
+```bash
+Copy-Item client/.env.example client/.env
+```
+
+### 4. Create the schema and demo data
+
+```bash
 npm run db:setup
 ```
 
-`db:setup` creates the database if it doesn't exist, creates the tables, and adds demo data. To wipe and start over later: `npm run db:reset`.
+The setup command creates the schema and seeds demo users and gigs when the
+database is empty. To reset the local database and seed it again:
 
-### 4. Run it
+```bash
+npm run db:reset
+```
+
+### 5. Run the application
 
 ```bash
 npm run dev
 ```
 
-- Web app: http://localhost:5173
-- API: http://localhost:5000/api/health
+Open:
 
-(Or run `npm run dev` inside `server/` and `client/` in two terminals.)
+- Client: <http://localhost:5173>
+- API health: <http://localhost:5000/api/health>
 
-### 5. Log in with demo accounts
+If port 5173 is already in use, Vite selects the next available port and prints
+the actual URL in the terminal.
 
-Password for all: `demo1234`
+## Demo accounts
 
-| Email | Notes |
-|---|---|
-| `aarav@ves.ac.in` | Has finished gigs, one in progress, one delivered, and a posted gig |
-| `meera@ves.ac.in` | Has an open gig with two competing bids (650 and 700 against an 800 budget) |
-| `rohan@ves.ac.in`, `sana@ves.ac.in` | Other sides of the demo gigs |
+All seeded demo accounts use the password `demo1234`.
 
-## Demo script (2 minutes)
+| Email | Use |
+| --- | --- |
+| `aarav@ves.ac.in` | Completed gigs, active work, delivered work, and a posted gig |
+| `meera@ves.ac.in` | Open gig with competing bids |
+| `rohan@ves.ac.in` | Freelancer side of demo gigs |
+| `sana@ves.ac.in` | Additional demo participant |
 
-1. Log in as **meera**. Open **Posted by me**, then "Landing page in React for a club". Two bids are waiting.
-2. Click **Accept and hold** on the lowest bid. The dialog shows her balance before and after. Confirm. The stepper moves to "Coins in escrow".
-3. Log out, log in as **rohan**. Open **My work & bids**, open the gig, click **Mark as delivered**, add a link.
-4. Log back in as **meera**, open the gig, click **Release payment**. XP goes up for both.
-5. Log in as **rohan** again, open **GigCoins**: balance, earned today, chart, then **Withdraw to UPI**.
-6. Open **History** to see the finished work.
+These are local demonstration accounts only. Do not use the seeded password in
+production.
 
-## Automated API test
+## Escrow demo flow
 
-With the server running (`npm run dev`):
+1. Sign in as Meera and open **Posted by me**.
+2. Open **Landing page in React for a club** and accept the lowest bid.
+3. Sign in as Rohan and open **My work & bids**.
+4. Mark the gig as delivered and provide a delivery link.
+5. Sign in as Meera and release the payment.
+6. Sign in as Rohan and review the released GigCoins in the wallet.
+
+The accepted bid amount is locked from the owner's wallet. The budget is only a
+maximum; the owner is charged the accepted bid amount.
+
+## Configuration
+
+Server settings are read from `server/.env`:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `5000` | API and production server port |
+| `DATABASE_URL` | local Docker URL | PostgreSQL connection string |
+| `JWT_SECRET` | development fallback | Secret used to sign access tokens |
+| `ALLOWED_DOMAINS` | `ves.ac.in` | Comma-separated signup email domains |
+| `SERVICE_FEE_PERCENT` | `0` | Platform fee on escrow release, capped at 50 |
+| `SIGNUP_BONUS_COINS` | `500` | New-user wallet balance |
+| `MIN_WITHDRAW_COINS` | `50` | Minimum mocked withdrawal |
+| `APP_TIMEZONE` | `Asia/Kolkata` | Wallet analytics timezone |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | Allowed hosted client origin |
+| `DB_SSL` | `false` | Enable SSL for hosted PostgreSQL |
+
+For a separately hosted client, set `client/.env`:
+
+```text
+VITE_API_URL=https://your-api.example.com/api
+```
+
+Never commit `.env` files. They are excluded by `.gitignore`.
+
+## Testing and production build
+
+The API flow test creates throw-away users and validates the main business
+rules, including bidding, escrow, revisions, release, refunds, withdrawals,
+analytics, and history:
 
 ```bash
 npm run test:flow
 ```
 
-It registers throw-away users and runs 42 checks: bid rules, escrow hold, delivery, revision, release, no double release, refund when a freelancer leaves, insufficient funds, withdrawals, analytics and history.
-
-## Run it as one server (production style)
+Build the client:
 
 ```bash
-npm run build      # builds client/dist
-npm start          # Express serves the API and the built client on http://localhost:5000
+npm run build
 ```
 
-For hosting (Render/Railway for the API, Neon for Postgres, Vercel for the client): set `VITE_API_URL` in `client/.env` to the API's URL before building the client, and set `CLIENT_ORIGIN` in the server environment to the client's URL.
+Run the production-style server after building:
+
+```bash
+npm start
+```
+
+The Express server serves the built client and API from
+<http://localhost:5000>.
 
 ## Project structure
 
-```
+```text
 campusgigs/
-├── server/
-│   ├── db/            schema.sql · seed.js · setup.js · flow-test.js
+├── client/
 │   └── src/
-│       ├── config/        env.js · db.js
-│       ├── middleware/    auth.js · error.js
-│       ├── routes/        index.js (all endpoints)
-│       ├── controllers/   auth · user · gig · bid · escrow · wallet · history
-│       └── services/      escrowService.js (state machine) · walletService.js · userService.js
-└── client/src/
-    ├── api/ context/ utils/ styles/
-    ├── components/    AppShell (menu drawer) · TrustCard · StatusStepper · BarChart · …
-    └── pages/         Login · Signup · Recover · Dashboard · GigDetail · Profile · PublicProfile · Wallet · History
+│       ├── api/             Axios API client
+│       ├── components/     Shared UI components
+│       ├── context/        Authentication and toast state
+│       ├── pages/          Login, dashboard, wallet, profile, and history
+│       └── styles/         Application styles
+├── server/
+│   ├── db/                 Schema, setup, seed, and flow test
+│   └── src/
+│       ├── config/         Environment and PostgreSQL pool
+│       ├── controllers/    Request handlers
+│       ├── middleware/     Authentication and error handling
+│       ├── routes/         API route definitions
+│       └── services/       Escrow, wallet, and user domain logic
+├── docs/
+│   ├── API.md              Endpoint reference
+│   ├── ARCHITECTURE.md     Request flow and domain design
+│   ├── CONTRIBUTING.md     Local contribution workflow
+│   └── DEPLOYMENT.md       Hosted deployment checklist
+└── docker-compose.yml      Local PostgreSQL service
 ```
 
 ## Escrow state machine
 
+```text
+open --accept bid--> in_progress --deliver--> delivered --approve--> completed
+                         ^                         |
+                         |------ ask changes ------|
+
+in_progress or delivered --freelancer leaves--> open (owner refunded)
+open --owner cancels--> cancelled
 ```
-open ──accept bid (coins locked)──▶ in_progress ──deliver──▶ delivered ──approve──▶ completed
-                                       ▲                         │
-                                       └──── ask for changes ────┘
-in_progress / delivered ──freelancer leaves──▶ open   (owner refunded in full)
-open ──owner cancels──▶ cancelled
-```
 
-Each step runs in one database transaction with row locks, so coins can't be created, lost, or spent twice.
+Escrow operations run inside PostgreSQL transactions and use row locks so that
+coins cannot be created, lost, or released twice.
 
-## API summary
+## Documentation
 
-All routes are under `/api`. Everything except `auth/*`, `meta` and `health` needs `Authorization: Bearer <token>`.
+- [API reference](docs/API.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
+- [Contributing guide](docs/CONTRIBUTING.md)
 
-| Method | Route | Purpose |
-|---|---|---|
-| POST | `/auth/register` · `/auth/login` · `/auth/forgot` · `/auth/reset` | Account access |
-| GET / PUT | `/users/me` | Own profile + stats / update |
-| GET | `/users/:id` | Public trust ID |
-| GET / POST | `/gigs` | List (`scope=explore|posted|working`, `q`, `category`, `sort`) / create |
-| GET / PUT / DELETE | `/gigs/:id` | Detail / edit open gig / cancel open gig |
-| POST | `/gigs/:id/bids` | Place or update your bid |
-| GET | `/bids/mine` | Your bids |
-| DELETE | `/bids/:id` | Withdraw a pending bid |
-| POST | `/bids/:id/accept` | Accept bid and lock coins in escrow |
-| POST | `/gigs/:id/deliver` · `/revision` · `/confirm` · `/leave` | Escrow actions |
-| GET | `/wallet` · `/wallet/analytics` · `/wallet/transactions` | Balance, charts, activity |
-| POST | `/wallet/topup` · `/wallet/withdraw` | Mock UPI in / out |
-| GET | `/history` | Past work (`role`, `status`) |
+## Scope and limitations
+
+GigCoins top-ups and withdrawals are mocked. The project does not process real
+payments or store card, bank, or UPI payment credentials. Chat, ratings,
+notifications, email delivery, OTP verification, and an admin panel are outside
+the current scope.
 
 ## Troubleshooting
 
-- **"Could not connect to PostgreSQL"**: Postgres isn't running, or `DATABASE_URL` has the wrong password/port. With Docker, run `docker compose up -d` first.
-- **"password authentication failed"**: fix the password in `DATABASE_URL`.
-- **Signup says only `@ves.ac.in` emails are allowed**: add your domain to `ALLOWED_DOMAINS` in `server/.env` and restart the server.
-- **Page loads but API calls fail**: the API must be running on port 5000 (the dev client proxies `/api` there).
-- **Fonts look plain**: the app loads Bricolage Grotesque and DM Sans from Google Fonts, so it needs internet once.
-- **Forgot password**: there's no email server, so the reset link appears on the page (and in the server console).
+### PostgreSQL connection errors
 
-## Scope note for the report
+Confirm that PostgreSQL is running and that `DATABASE_URL` matches its host,
+port, user, password, and database name. With Docker:
 
-Real payments, chat, ratings, notifications, an admin panel and email OTP are out of scope here and listed as future scope, as in the blueprint. GigCoin top-ups and withdrawals are mocked, and no real card or bank data is collected.
+```bash
+docker compose ps
+docker compose up -d
+```
+
+Then run `npm run db:setup`.
+
+### API calls fail from the client
+
+Run the API on port 5000 and the client through Vite. In development, Vite
+proxies `/api` requests to `http://localhost:5000`.
+
+### Signup rejects an email
+
+Add the domain to `ALLOWED_DOMAINS` in `server/.env`, then restart the API.
+
+### Forgot-password links
+
+No email provider is configured. In development, the reset link is displayed
+by the application and logged by the server.
+
+## License
+
+This repository does not currently declare an open-source license. Contact the
+repository owner before redistributing or reusing the code.
